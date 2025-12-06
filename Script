@@ -8,6 +8,9 @@ fi
 
 #Users
 #Variables
+#Ubuntu Prctice
+#Admins=('perry' 'carlos' 'kan' 'alice' 'josefina')
+#Standard=('jaimie' 'adalbern' 'amayas' 'fabienne' 'mariya' 'cornelius' 'harold' 'taran' 'felix' 'angela' 'rais' 'miriam' 'aldo' 'timothy' 'leilani' 'viktor' 'linda' 'jeanne' 'martin' 'josef' 'roger' 'stacy' 'suzy' 'liz')
 Admins=(' ')
 Standard=(' ')
 Allowed_Users=("${Admins[@]}" "${Standard[@]}")
