@@ -22,7 +22,14 @@ for user in "${Users[@]}"; do
 	if [ "$user" = "$(whoami)" ]; then
 		continue
 	else
-		password()
+		uid=$(id -u "$user")
+
+		if [[ $uid -lt 1000 ]]; then
+		    echo "Skipping password change for system account: $user"
+		    continue
+		fi
+
+		password $user
 	fi
 	if [[ " ${Allowed_Users[@]} " =~ " $user " ]]; then
 		if [[ " ${Admins[@]} " =~ " $user " ]]; then
@@ -31,6 +38,15 @@ for user in "${Users[@]}"; do
 			demote $user
 		fi
 	else
+		uid=$(id -u "$user")
+
+		# If UID < 1000, skip deletion (it's a system account)
+		if [[ $uid -lt 1000 ]]; then
+		    echo "Skipping system account: $user"
+		    continue
+		fi
+		
+		# Otherwise safe to remove
 		remove $user
 	fi
 done
