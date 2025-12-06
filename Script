@@ -20,7 +20,7 @@ password() { echo "$1:N!w0tC0ug@rS2025" | chpasswd; }
 #execute
 for user in "${Users[@]}"; do
 	if [ "$user" = "$(whoami)" ]; then
-		break
+		continue
 	else
 		password()
 	fi
