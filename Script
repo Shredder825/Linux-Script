@@ -1,0 +1,66 @@
+#! /usr/bin/env bash
+
+#Sudo Failsafe
+if [[ $EUID -ne 0 ]]; then
+  echo 'Please run as root (sudo $0)' >&2
+  exit 1
+fi
+
+#Users
+#Variables
+Admins=(' ')
+Standard=(' ')
+Allowed_Users=("${Admins[@]}" "${Standard[@]}")
+Users=($(cut -d: -f1 /etc/passwd))
+#functions
+elevate() { usermod -aG sudo "$1"; }
+demote()  { gpasswd -d "$1" sudo; }
+remove()  { userdel -r "$1"; }
+password() { echo "$1:N!w0tC0ug@rS2025" | chpasswd; }
+#execute
+for user in "${Users[@]}"; do
+	if [ "$user" = "$(whoami)" ]; then
+		break
+	else
+		password()
+	fi
+	if [[ " ${Allowed_Users[@]} " =~ " $user " ]]; then
+		if [[ " ${Admins[@]} " =~ " $user " ]]; then
+			elevate $user
+		else
+			demote $user
+		fi
+	else
+		remove $user
+	fi
+done
+#Root & Guest
+echo "allow-guest=false" >> /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
+sed -i '/allow-root=true/d' /etc/lightdm/lightdm.conf
+
+#UFW
+sudo ufw enable && sudo ufw allow ssh
+
+#IPv6
+echo -e "net.ipv6.conf.all.disable_ipv6=1\nnet.ipv6.conf.default.disable_ipv6=1\nnet.ipv6.conf.lo.disable_ipv6=1" >> /etc/sysctl.conf
+
+#Files
+rm *.mp3
+rm *.mp4
+rm *.mov
+rm *.avi
+
+#Security Tools
+sudo apt-get install fail2ban
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+
+sudo apt-get install apparmor-utils
+sudo systemctl enable apparmor
+sudo systemctl start apparmor
+
+sudo apt-get install clamav
+clamscan
+
+#Updates
+sudo apt-get update && sudo apt-get upgrade -y
