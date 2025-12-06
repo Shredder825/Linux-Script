@@ -60,6 +60,17 @@ sed -i '/allow-root=true/d' /etc/lightdm/lightdm.conf
 #UFW
 sudo ufw enable && sudo ufw allow ssh
 
+#Secpols
+#Password
+sed -i 's/^\(FAIL_LOG_ENAB\s*\).*/\Yes/' /etc/login.defs
+sed -i 's/^\(LOG_OK_LOGINS\s*\).*/\Yes/' /etc/login.defs
+sed -i 's/^\(LOG_UNKFAIL_ENAB\s*\).*/\Yes/' /etc/login.defs
+sed -i 's/^\(SYSLOG_SU_ENAB\s*\).*/\Yes/' /etc/login.defs
+sed -i 's/^\(SYSLOG_SG_ENAB\s*\).*/\Yes/' /etc/login.defs
+sed -i 's/^\(PASS_MAX_DAYS\s*\).*/\90/' /etc/login.defs
+sed -i 's/^\(PASS_MIN_DAYS\s*\).*/\15/' /etc/login.defs
+sed -i 's/^\(PASS_WARN_AGE\s*\).*/\7/' /etc/login.defs
+
 #IPv6
 echo -e "net.ipv6.conf.all.disable_ipv6=1\nnet.ipv6.conf.default.disable_ipv6=1\nnet.ipv6.conf.lo.disable_ipv6=1" >> /etc/sysctl.conf
 
