@@ -9,10 +9,12 @@ fi
 #Users
 #Variables
 #Ubuntu Prctice
-Admins=('perry' 'carlos' 'kan' 'alice' 'josefina')
-Standard=('jaimie' 'adalbern' 'amayas' 'fabienne' 'mariya' 'cornelius' 'harold' 'taran' 'felix' 'angela' 'rais' 'miriam' 'aldo' 'timothy' 'leilani' 'viktor' 'linda' 'jeanne' 'martin' 'josef' 'roger' 'stacy' 'suzy' 'liz')
-#Admins=(' ')
-#Standard=(' ')
+#Admins=('perry' 'carlos' 'kan' 'alice' 'josefina')
+#Standard=('jaimie' 'adalbern' 'amayas' 'fabienne' 'mariya' 'cornelius' 'harold' 'taran' 'felix' 'angela' 'rais' 'miriam' 'aldo' 'timothy' 'leilani' 'viktor' 'linda' 'jeanne' 'martin' 'josef' 'roger' 'stacy' 'suzy' 'liz')
+#Admins=('chowe' 'miles' 'gwen' 'peter')
+#Standard=('peni' 'noir' 'ham' 'stan' 'steve' 'miguel' 'jefferson' 'rio' 'may' 'jessica' 'pavitr' 'maryjane')
+Admins=(' ')
+Standard=(' ')
 Allowed_Users=("${Admins[@]}" "${Standard[@]}")
 Users=($(cut -d: -f1 /etc/passwd))
 #functions
@@ -40,6 +42,8 @@ for user in "${Users[@]}"; do
 		else
 			demote $user
 		fi
+		sudo chage -M 90 $user
+		sudo getent shadow $user
 	else
 		uid=$(id -u "$user")
 
@@ -56,6 +60,7 @@ done
 #Root & Guest
 echo "allow-guest=false" >> /usr/share/lightdm/lightdm.conf.d/50-ubuntu.conf
 sed -i '/allow-root=true/d' /etc/lightdm/lightdm.conf
+sudo passwd -l root
 
 #UFW
 sudo ufw enable && sudo ufw allow ssh
@@ -75,6 +80,11 @@ if grep -q 'pam_pwquality.so' /etc/pam.d/common-password; then
 else
     echo "Warning: pam_pwquality.so line not found in /etc/pam.d/common-password"
 fi
+if grep -q 'pam_unix.so' /etc/pam.d/common-password; then
+    sed -i 's/^\(pam_unix.so\s*\).*/\1password [success=1 default=ignore] pam_unix.so obscure yescrypt retry=3 minlen=12 maxrepeat=3 remember=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1 difok=4 reject_username enforce_for_root/' /etc/pam.d/common-password
+else
+    echo "Warning: pam_unix.so line not found in /etc/pam.d/common-password"
+fi
 if grep -q 'nullok' /etc/pam.d/common-auth; then
     sed -i 's/\bnullok\b//g' /etc/pam.d/common-auth
     echo "Removed nullok from /etc/pam.d/common-auth"
@@ -82,7 +92,7 @@ else
     echo "No nullok found in /etc/pam.d/common-auth"
 fi
 #Account Lockout
-cat > /usr/share/pam-configs/faillock << EOF
+sudo cat > /usr/share/pam-configs/faillock << EOF
 Name: Enforce failed login attempt counter
 Default: no
 Priority: 0
@@ -91,7 +101,7 @@ Auth:
 	[default=die] pam_faillock.so authfail
 	sufficient pam_faillock.so authsuc
 EOF
-cat > /usr/share/pam-configs/faillock_notify << EOF
+sudo cat > /usr/share/pam-configs/faillock_notify << EOF
 Name: Notify on failed login attempts
 Default: no
 Priority: 1024
@@ -108,10 +118,11 @@ sed -i 's/^\(net.ipv4.ip_forward=\s*\).*/\1net.ipv4.ip_forward=0/' /etc/sysctl.c
 #IPv6
 echo -e "net.ipv6.conf.all.disable_ipv6=1\nnet.ipv6.conf.default.disable_ipv6=1\nnet.ipv6.conf.lo.disable_ipv6=1" >> /etc/sysctl.conf
 sysctl -p
+sudo sysctl --system
 
 #Files
 #Prohibited
-find /home -type f \( -iname "*.mp3" -o -iname "*.mp4" -o -iname "*.mov" -o -iname "*.avi" \) -delete
+find /home -type f \( -iname "*.mp3" -o -iname "*.mp4" -o -iname "*.mov" -o -iname "*.avi" -o -iname "*.ogg" \) -delete
 
 #Permissions
 sudo chmod 640 /etc/shadow
@@ -129,7 +140,7 @@ sudo apt-get install clamav -y
 
 #Services
 sudo systemctl disable --now nginx || true
-sudo systemctl disable --now vsftpd || true
+#sudo systemctl disable --now vsftpd || true
 sudo systemctl disable --now apache2 || true
 sudo systemctl disable --now httpd || true
 sudo systemctl disable --now mysql || true
