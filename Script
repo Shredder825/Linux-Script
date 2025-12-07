@@ -100,24 +100,68 @@ echo -e "net.ipv6.conf.all.disable_ipv6=1\nnet.ipv6.conf.default.disable_ipv6=1\
 
 #Files
 #Prohibited
-rm *.mp3
-rm *.mp4
-rm *.mov
-rm *.avi
+locate "*.mp3" | while read -r file; do
+    rm -f "$file"
+done
+locate "*.mp4" | while read -r file; do
+    rm -f "$file"
+done
+locate "*.mov" | while read -r file; do
+    rm -f "$file"
+done
+locate "*.avi" | while read -r file; do
+    rm -f "$file"
+done
 #Permissions
 sudo chmod 640 /etc/shadow
 
 #Security Tools
-sudo apt-get install fail2ban
+sudo apt-get install fail2ban -y
 sudo systemctl enable fail2ban
 sudo systemctl start fail2ban
 
-sudo apt-get install apparmor-utils
+sudo apt-get install apparmor-utils -y
 sudo systemctl enable apparmor
 sudo systemctl start apparmor
 
-sudo apt-get install clamav
+sudo apt-get install clamav -y
 clamscan
 
+#Services
+sudo systemctl disable --now nginx || true
+sudo systemctl disable --now vsftpd || true
+sudo systemctl disable --now apache2 || true
+sudo systemctl disable --now httpd || true
+sudo systemctl disable --now mysql || true
+sudo systemctl disable --now postgresql || true
+sudo systemctl disable --now samba || true
+sudo systemctl disable --now postfix || true
+sudo systemctl disable --now sendmail || true
+sudo systemctl disable --now cups || true
+sudo systemctl disable --now avahi-daemon || true
+sudo systemctl disable --now rpcbind || true
+sudo systemctl disable --now dnsmasq || true
+sudo systemctl disable --now bind9 || true
+
+#SSH
+sed -i 's/^\(PermitRootLogin\s*\).*/\no/' /etc/ssh/sshd_config
+
 #Updates
+#Auto
+apt-get install -y unattended-upgrades
+
+cat << EOF > /etc/apt/apt.conf.d/10periodic
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Download-Upgradeable-Packages "1";
+APT::Periodic::AutocleanInterval "7";
+EOF
+
+cat << EOF > /etc/apt/apt.conf.d/20auto-upgrades
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
+
+systemctl enable --now apt-daily.timer
+systemctl enable --now apt-daily-upgrade.timer
+#Full System
 sudo apt-get update && sudo apt-get upgrade -y
