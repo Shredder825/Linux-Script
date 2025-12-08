@@ -92,23 +92,33 @@ else
     echo "No nullok found in /etc/pam.d/common-auth"
 fi
 #Account Lockout
-sudo cat > /usr/share/pam-configs/faillock << EOF
-Name: Enforce failed login attempt counter
-Default: no
-Priority: 0
-Auth-Type: Primary
-Auth:
-	[default=die] pam_faillock.so authfail
-	sufficient pam_faillock.so authsuc
+sudo bash -c "cat > /etc/security/faillock.conf" <<EOF
+deny = 5
+unlock_time = 1800
+fail_interval = 1800
 EOF
-sudo cat > /usr/share/pam-configs/faillock_notify << EOF
-Name: Notify on failed login attempts
-Default: no
-Priority: 1024
-Auth-Type: Primary
-Auth:
-	requisite pam_faillock.so preauth
+
+echo "[+] Updated /etc/security/faillock.conf"
+
+# Remove any previous faillock lines
+sudo grep -v "pam_faillock.so" "/etc/pam.d/common-auth" > "/tmp/common-auth.$$"
+
+# Insert faillock rules
+sudo bash -c "cat > /tmp/common-auth.$$" <<EOF
+auth required pam_faillock.so preauth silent deny=5 unlock_time=1800 fail_interval=1800
+$(grep -v "pam_faillock.so" "/etc/pam.d/common-auth")
+auth required pam_faillock.so authfail deny=5 unlock_time=1800 fail_interval=1800
 EOF
+
+sudo mv "/tmp/common-auth.$$" "/etc/pam.d/common-auth"
+echo "[+] Updated /etc/pam.d/common-auth"
+
+if ! grep -q "pam_faillock.so" "/etc/pam.d/common-account"; then
+    echo "account required pam_faillock.so" | sudo tee -a "/etc/pam.d/common-account" >/dev/null
+    echo "[+] Added faillock line to /etc/pam.d/common-account"
+else
+    echo "[=] faillock already present in /etc/pam.d/common-account"
+fi
 pam-auth-update
 
 #IPv4
