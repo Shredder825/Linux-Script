@@ -129,7 +129,7 @@ grep -q '^net.ipv4.ip_forward=' /etc/sysctl.conf || echo 'net.ipv4.ip_forward=0'
 sed -i 's/^net.ipv4.ip_forward=.*/net.ipv4.ip_forward=0/' /etc/sysctl.conf
 
 grep -q '^kernel.randomize_va_space=' /etc/sysctl.conf || echo ' kernel.randomize_va_space=2' >> /etc/sysctl.conf
-sed -i 's/^ kernel.randomize_va_space=.*/ kernel.randomize_va_space=2/' /etc/sysctl.conf
+sed -i 's/^kernel.randomize_va_space=.*/kernel.randomize_va_space=2/' /etc/sysctl.conf
 
 #IPv6
 echo -e "net.ipv6.conf.all.disable_ipv6=1\nnet.ipv6.conf.default.disable_ipv6=1\nnet.ipv6.conf.lo.disable_ipv6=1" >> /etc/sysctl.conf
@@ -154,9 +154,13 @@ sudo systemctl start apparmor
 
 sudo apt-get install clamav -y
 
-#Services
+#ServicesP
 sudo systemctl disable --now nginx || true
+sudo systemctl disable --now squid || true
 #sudo systemctl disable --now vsftpd || true
+#sudo systemctl disable --now ssh.service || true
+#sudo systemctl disable --now sshd.service || true
+#ServicesE
 sudo systemctl disable --now apache2 || true
 sudo systemctl disable --now httpd || true
 sudo systemctl disable --now mysql || true
@@ -189,21 +193,50 @@ systemctl restart ssh
 apt-get install -y unattended-upgrades
 
 cat << EOF > /etc/apt/apt.conf.d/10periodic
+echo "Configuring automatic updates..."
+
+# Install unattended-upgrades if missing
+apt-get update
+apt-get install -y unattended-upgrades apt-listchanges
+
+# Configure unattended-upgrades to apply security and standard updates
+cat << EOF | tee /etc/apt/apt.conf.d/50unattended-upgrades
+Unattended-Upgrade::Allowed-Origins {
+        "\${distro_id}:\${distro_codename}-security";
+        "\${distro_id}:\${distro_codename}-updates";
+};
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+EOF
+
+# Configure periodic updates
+cat << EOF | tee /etc/apt/apt.conf.d/20auto-upgrades
 APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Download-Upgradeable-Packages "1";
 APT::Periodic::AutocleanInterval "7";
-EOF
-
-cat << EOF > /etc/apt/apt.conf.d/20auto-upgrades
-APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
 EOF
 
-systemctl enable --now apt-daily.timer
-systemctl enable --now apt-daily-upgrade.timer
+# Enable and start timers
+systemctl enable --now apt-daily.timer apt-daily-upgrade.timer
+
+# Linux Mint 21 specific (mintupdate)
+if [ -f /etc/linuxmint/info ]; then
+    echo "Detected Linux Mint: configuring mintupdate automation..."
+    MINTCONF="/etc/linuxmint/mintupdate.conf"
+
+    sed -i 's/^auto_refresh.*/auto_refresh = true/' $MINTCONF || echo "auto_refresh = true" >> $MINTCONF
+    sed -i 's/^auto_upgrade.*/auto_upgrade = true/' $MINTCONF || echo "auto_upgrade = true" >> $MINTCONF
+    sed -i 's/^auto_kernel_remove.*/auto_kernel_remove = true/' $MINTCONF || echo "auto_kernel_remove = true" >> $MINTCONF
+    sed -i 's/^auto_flatpak_update.*/auto_flatpak_update = true/' $MINTCONF || echo "auto_flatpak_update = true" >> $MINTCONF
+
+    systemctl enable --now mintupdate.timer
+fi
+
+echo "[+] Automatic updates configured."
 #Full System
-sudo apt update && sudo apt full-upgrade -y
+sudo apt-get update && sudo apt full-upgrade -y
 
 #Scan
 freshclam
-clamscan -r/
+clamscan -r /
