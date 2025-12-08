@@ -67,21 +67,21 @@ sudo ufw enable && sudo ufw allow ssh
 
 #Secpols
 #Password
-sed -i 's/^\(FAIL_LOG_ENAB\s*\).*/\1FAIL_LOG_ENAB Yes/' /etc/login.defs
-sed -i 's/^\(LOG_OK_LOGINS\s*\).*/\1LOG_OK_LOGINS Yes/' /etc/login.defs
-sed -i 's/^\(LOG_UNKFAIL_ENAB\s*\).*/\1LOG_UNKFAIL_ENAB Yes/' /etc/login.defs
-sed -i 's/^\(SYSLOG_SU_ENAB\s*\).*/\1SYSLOG_SU_ENAB Yes/' /etc/login.defs
-sed -i 's/^\(SYSLOG_SG_ENAB\s*\).*/\1SYSLOG_SG_ENAB Yes/' /etc/login.defs
-sed -i 's/^\(PASS_MAX_DAYS\s*\).*/\1PASS_MAX_DAYS 90/' /etc/login.defs
-sed -i 's/^\(PASS_MIN_DAYS\s*\).*/\1PASS_MIN_DAYS 15/' /etc/login.defs
-sed -i 's/^\(PASS_WARN_AGE\s*\).*/\1PASS_WARN_AGE 7/' /etc/login.defs
+sed -i '/^FAIL_LOG_ENAB/c\FAIL_LOG_ENAB Yes' /etc/login.defs
+sed -i '/^LOG_OK_LOGINS/c\LOG_OK_LOGINS Yes' /etc/login.defs
+sed -i '/^LOG_UNKFAIL_ENAB/c\LOG_UNKFAIL_ENAB Yes' /etc/login.defs
+sed -i '/^SYSLOG_SU_ENAB/c\SYSLOG_SU_ENAB Yes' /etc/login.defs
+sed -i '/^SYSLOG_SG_ENAB/c\SYSLOG_SG_ENAB Yes' /etc/login.defs
+sed -i '/^PASS_MAX_DAYS/c\PASS_MAX_DAYS 90' /etc/login.defs
+sed -i '/^PASS_MIN_DAYS/c\PASS_MIN_DAYS 15' /etc/login.defs
+sed -i '/^PASS_WARN_AGE/c\PASS_WARN_AGE 7' /etc/login.defs
 if grep -q 'pam_pwquality.so' /etc/pam.d/common-password; then
-    sed -i 's/^\(password requisite pam_pwquality.so\s*\).*/\1password requisite pam_pwquality.so retry=3 minlen=12 maxrepeat=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1 difok=4 reject_username enforce_for_root/' /etc/pam.d/common-password
+    sudo sed -i '/pam_pwquality\.so/c\password requisite pam_pwquality.so retry=3 minlen=12 maxrepeat=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1 difok=4 reject_username enforce_for_root' /etc/pam.d/common-password
 else
     echo "Warning: pam_pwquality.so line not found in /etc/pam.d/common-password"
 fi
 if grep -q 'pam_unix.so' /etc/pam.d/common-password; then
-    sed -i 's/^\(pam_unix.so\s*\).*/\1password [success=1 default=ignore] pam_unix.so obscure yescrypt retry=3 minlen=12 maxrepeat=3 remember=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1 difok=4 reject_username enforce_for_root/' /etc/pam.d/common-password
+    sudo sed -i '/pam_unix\.so/c\password [success=1 default=ignore] pam_unix.so obscure yescrypt retry=3 minlen=12 maxrepeat=3 remember=3 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1 difok=4 reject_username enforce_for_root' /etc/pam.d/common-password
 else
     echo "Warning: pam_unix.so line not found in /etc/pam.d/common-password"
 fi
@@ -112,8 +112,14 @@ EOF
 pam-auth-update
 
 #IPv4
-sed -i 's/^\(net.ipv4.tcp_syncookies=\s*\).*/\1net.ipv4.tcp_syncookies=1/' /etc/sysctl.conf
-sed -i 's/^\(net.ipv4.ip_forward=\s*\).*/\1net.ipv4.ip_forward=0/' /etc/sysctl.conf
+grep -q '^net.ipv4.tcp_syncookies=' /etc/sysctl.conf || echo 'net.ipv4.tcp_syncookies=1' >> /etc/sysctl.conf
+sed -i 's/^net.ipv4.tcp_syncookies=.*/net.ipv4.tcp_syncookies=1/' /etc/sysctl.conf
+
+grep -q '^net.ipv4.ip_forward=' /etc/sysctl.conf || echo 'net.ipv4.ip_forward=0' >> /etc/sysctl.conf
+sed -i 's/^net.ipv4.ip_forward=.*/net.ipv4.ip_forward=0/' /etc/sysctl.conf
+
+grep -q '^kernel.randomize_va_space=' /etc/sysctl.conf || echo ' kernel.randomize_va_space=2' >> /etc/sysctl.conf
+sed -i 's/^ kernel.randomize_va_space=.*/ kernel.randomize_va_space=2/' /etc/sysctl.conf
 
 #IPv6
 echo -e "net.ipv6.conf.all.disable_ipv6=1\nnet.ipv6.conf.default.disable_ipv6=1\nnet.ipv6.conf.lo.disable_ipv6=1" >> /etc/sysctl.conf
@@ -186,7 +192,7 @@ EOF
 systemctl enable --now apt-daily.timer
 systemctl enable --now apt-daily-upgrade.timer
 #Full System
-sudo apt-get update && sudo apt-get upgrade -y
+sudo apt update && sudo apt full-upgrade -y
 
 #Scan
 freshclam
