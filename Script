@@ -8,8 +8,9 @@ fi
 
 #Users
 #Variables
-#Ubuntu Prctice
+#Ubuntu Practice
 #Admins=('perry' 'carlos' 'kan' 'alice' 'josefina')
+#Mint Practice
 #Standard=('jaimie' 'adalbern' 'amayas' 'fabienne' 'mariya' 'cornelius' 'harold' 'taran' 'felix' 'angela' 'rais' 'miriam' 'aldo' 'timothy' 'leilani' 'viktor' 'linda' 'jeanne' 'martin' 'josef' 'roger' 'stacy' 'suzy' 'liz')
 #Admins=('chowe' 'miles' 'gwen' 'peter')
 #Standard=('peni' 'noir' 'ham' 'stan' 'steve' 'miguel' 'jefferson' 'rio' 'may' 'jessica' 'pavitr' 'maryjane')
@@ -100,10 +101,10 @@ EOF
 
 echo "[+] Updated /etc/security/faillock.conf"
 
-# Remove any previous faillock lines
+#Remove any previous faillock lines
 sudo grep -v "pam_faillock.so" "/etc/pam.d/common-auth" > "/tmp/common-auth.$$"
 
-# Insert faillock rules
+#Insert faillock rules
 sudo bash -c "cat > /tmp/common-auth.$$" <<EOF
 auth required pam_faillock.so preauth silent deny=5 unlock_time=1800 fail_interval=1800
 $(grep -v "pam_faillock.so" "/etc/pam.d/common-auth")
