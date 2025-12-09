@@ -240,4 +240,4 @@ sudo apt-get update && sudo apt full-upgrade -y
 
 #Scan
 freshclam
-clamscan -r /
+clamscan
